@@ -4,22 +4,22 @@
 ## 1. Experimentación de Estructura de Datos
 Comparaciones entre estructuras de datos para almacenamiento de par clave-valor:
 
-- Diccionario basado en hashing (Tablas Hash) 
-- Diccionario basado en áboles
-- Diccionario basado en listas
+* [*] Diccionario basado en hashing (Tablas Hash) 
+* [] Diccionario basado en áboles
+* [*] Diccionario basado en listas
 
 La comparaci ́on debe realizarse en tiempo de ejecucio ́n al momento de consultar un par clave-valor (bu ́squeda). En consecuencias, se debe mostrar un gráfico con al menos 100 experimentos donde el nu ́mero de pares clave-valor va en aumento, ejemplo n = 10, n = 15,n = 20,...,n = 500
 
 ## 2. PLN y Sistema de Recuperación
 Recuperación de frases similares con espacios métricos:
 
-### 2.1. Tu programa debe almacenar el siguiente corpus en tu estructura de datos diccio- nario con par clave-valor. El vector es la clave y el texto es el valor.
-### 2.2. Tu programa debe almacenar los pares clave-valor en un diccionario con a ́rbol ba- lanceado automa ́ticamente (AVL).
-### 2.3. El usuario debe ingresar: (1) cualquier texto que es la consulta y (2) un valor radio r que representa los comentarios más cercanos almacenados en la estructura de datos al texto ingresado en (1). Para ello, tu programa debe implementar el algoritmo range-query.
+* [*] Tu programa debe almacenar el siguiente corpus en tu estructura de datos diccionario con par clave-valor. El vector es la clave y el texto es el valor.
+* [] Tu programa debe almacenar los pares clave-valor en un diccionario con árbol balanceado automáticamente (AVL).
+* [*] El usuario debe ingresar: (1) cualquier texto que es la consulta y (2) un valor radio r que representa los comentarios más cercanos almacenados en la estructura de datos al texto ingresado en (1). Para ello, tu programa debe implementar el algoritmo range-query.
 
 ## 3. Grafos y Consultas Espaciales
-### 3.1. Tu programa debe almacenar data relacional.
-### 3.2. La informacio ́n debe ser almacenada en un grafo.
-### 3.3. El usuario puede ingresar el nombre de un nodo origen y destino respectivamente. Tu programa debe retornar la ruta más corta.
+* [] Tu programa debe almacenar data relacional.
+* [] La información debe ser almacenada en un grafo.
+* [] El usuario puede ingresar el nombre de un nodo origen y destino respectivamente. Tu programa debe retornar la ruta más corta.
 
 ## 4. Debes implementar al menos 4 algoritmos distintos para hallar la ruta más corta entre dos nodos y estimar el tiempo de ejecución para cada uno de ellos dada una consulta.
