@@ -304,7 +304,7 @@ public:
         int temp=0;
         KVPar<Key,E> *pointer;
         for(this->lista->moverAInicio();this->lista->posicionActual() < this->lista->longitud(); this->lista->siguiente()){
-            if(this->lista->getValor().key() == k){
+            if(this->lista->getValor().key() == k) {
                 // En caso exista se aumenta un valor
                 this->lista->getValIndexpoint2(&pointer);
                 temp = pointer->setVal();
