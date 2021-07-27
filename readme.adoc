@@ -18,7 +18,7 @@ Recuperación de frases similares con espacios métricos:
 * [x] El usuario debe ingresar: (1) cualquier texto que es la consulta y (2) un valor radio r que representa los comentarios más cercanos almacenados en la estructura de datos al texto ingresado en (1). Para ello, tu programa debe implementar el algoritmo range-query.
 
 ## 3. Grafos y Consultas Espaciales
-* [ ] Tu programa debe almacenar data relacional. 
-* [ ] La información debe ser almacenada en un grafo.
-* [ ] El usuario puede ingresar el nombre de un nodo origen y destino respectivamente. Tu programa debe retornar la ruta más corta.
+* [x] Tu programa debe almacenar data relacional. 
+* [x] La información debe ser almacenada en un grafo.
+* [x] El usuario puede ingresar el nombre de un nodo origen y destino respectivamente. Tu programa debe retornar la ruta más corta.
 * [ ] Debes implementar al menos 4 algoritmos distintos para hallar la ruta más corta entre dos nodos y estimar el tiempo de ejecución para cada uno de ellos dada una consulta.
