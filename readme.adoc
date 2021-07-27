@@ -5,7 +5,7 @@
 Comparaciones entre estructuras de datos para almacenamiento de par clave-valor:
 
 * [x] Diccionario basado en hashing (Tablas Hash)
-* [ ] Diccionario basado en áboles
+* [x] Diccionario basado en áboles
 * [x] Diccionario basado en listas
 
 La comparación debe realizarse en tiempo de ejecución al momento de consultar un par clave-valor (búsqueda). En consecuencias, se debe mostrar un gráfico con al menos 100 experimentos donde el número de pares clave-valor va en aumento, ejemplo n = 10, n = 15,n = 20,...,n = 500
@@ -14,7 +14,7 @@ La comparación debe realizarse en tiempo de ejecución al momento de consultar 
 Recuperación de frases similares con espacios métricos:
 
 * [x] Tu programa debe almacenar el siguiente corpus en tu estructura de datos diccionario con par clave-valor. El vector es la clave y el texto es el valor.
-* [ ] Tu programa debe almacenar los pares clave-valor en un diccionario con árbol balanceado automáticamente (AVL).
+* [x] Tu programa debe almacenar los pares clave-valor en un diccionario con árbol balanceado automáticamente (AVL).
 * [x] El usuario debe ingresar: (1) cualquier texto que es la consulta y (2) un valor radio r que representa los comentarios más cercanos almacenados en la estructura de datos al texto ingresado en (1). Para ello, tu programa debe implementar el algoritmo range-query.
 
 ## 3. Grafos y Consultas Espaciales
