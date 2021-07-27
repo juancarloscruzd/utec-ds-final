@@ -444,7 +444,7 @@ public:
         this->tamLista = this->MaxIndex + 1;
     }
     //Metodo para retornar Maximo del Heap
-    E MaxHeap(){
+    E MaxHeap(){ 
       return this->arreglo->getValorEnPosicion(0);
     }
     //Metodo para reemplzar un valor mayor q el existente.
