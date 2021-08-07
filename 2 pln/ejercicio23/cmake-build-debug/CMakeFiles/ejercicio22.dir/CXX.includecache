@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/coyol/Desktop/utec/EdD/TrabFin/ejercicio22/main.cpp
+iostream
+-
+chrono
+-
+cmath
+-
+random
+-
+sstream
+-
+fstream
+-
+cstdlib
+-
+clocale
+-
+

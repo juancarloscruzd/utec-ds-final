@@ -1,0 +1,3 @@
+C:/Users/coyol/Desktop/utec/EdD/TrabFin/ejercicio21/cmake-build-debug/CMakeFiles/ejercicio21.dir
+C:/Users/coyol/Desktop/utec/EdD/TrabFin/ejercicio21/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/coyol/Desktop/utec/EdD/TrabFin/ejercicio21/cmake-build-debug/CMakeFiles/rebuild_cache.dir

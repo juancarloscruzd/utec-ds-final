@@ -1,11 +1,11 @@
 #include <iostream>
-#include<string.h>
 #include <chrono>
 #include <cmath>
 #include <random>
 #include <sstream>
 #include <fstream>
 #include <cstdlib>
+#include <clocale>
 
 using namespace std;
 
@@ -316,8 +316,6 @@ public:
         }
     }
 
-
-
     //Remover y retornar un registro
     //k: la clave del registro que debe ser removido
     //Retornar: un registro. Si hay mas de un registro con la misma clave,
@@ -525,6 +523,30 @@ public:
         }
     }
 
+    void insertarVal(Key k, E e){
+        // Posicion con valor hash
+        int hashVal = HashObj->valToHash3(e,this->tamLongHash);
+
+        // El insertar se hace en posicion con valor hash
+        ListaArreglo<KVPar<Key, E>> *listTemp;
+        this->arraySeparate->getValIndexpoint(hashVal, &listTemp);
+        int check = listTemp->longitud();
+        if (check == 0){
+            this->numElementos++;  // Elementos del vector grande utilizado
+            KVPar<Key,E> KVTemp(k,e);
+            listTemp->agregar(KVTemp);
+            this->arraySeparate->insertPos(hashVal, listTemp);
+        }else{
+            // Colisiones
+            this->colisiones++;
+            // Se agrega el dato
+            KVPar<Key,E> KVTemp2(k,e);
+            listTemp->agregar(KVTemp2);
+            this->arraySeparate->insertPos(hashVal, listTemp);
+        }
+    }
+
+
     //Remover y retornar un registro
     //k: la clave del registro que debe ser removido
     //Retornar: un registro. Si hay mas de un registro con la misma clave,
@@ -594,25 +616,22 @@ public:
     }
 
     // Encontrar con string
-    E encontrarS(Key k){
+    E encontrarS(E e){
         string temp = "";
 
         // Posicion con valor hash
-        int hashVal = HashObj->valToHash3(k,this->tamLongHash);
+        int hashVal = HashObj->valToHash3(e,this->tamLongHash);
         ListaArreglo<KVPar<Key, E>> *listTemp;
         this->arraySeparate->getValIndexpoint(hashVal, &listTemp);
         for (listTemp->moverAInicio(); listTemp->posicionActual() < listTemp->longitud(); listTemp->siguiente()){
-            if (listTemp->getValor().key()==k){
-                temp = listTemp->getValor().valor();
+            if (listTemp->getValor().valor()==e){
+                temp = listTemp->getValor().key();
                 return temp;
                 break;
             }
         }
-
-        delete listTemp;
         return temp;
     }
-
 
     //Retornar true/false
     bool encontrarbool(Key k){
@@ -844,9 +863,10 @@ double distance(E *array1, E *array2, int p, int size){
 
 template<typename D> class CorpusVectorizado{
 private:
-    DiccionarioHash<D, string> *CorpusHash;
     DiccionarioArreglo<D, int> *diccionario;
+    DiccionarioHash<D, string> *CorpusHash;
     ListaArreglo<string> *Licorpus;
+    DiccionarioArreglo<D, string> *FinalWords;
     Hashes *HashObj = new Hashes();
     int TamanhoHash = 0;
 
@@ -856,6 +876,7 @@ public:
         this->CorpusHash = new DiccionarioHash<D, string>(Tam);
         this->diccionario = new DiccionarioArreglo<D, int>(Tam);
         this->Licorpus = new ListaArreglo<string>(Tam);
+        this->FinalWords = new DiccionarioArreglo<D, string>(Tam);
         this->TamanhoHash = Tam;
     }
 
@@ -866,51 +887,34 @@ public:
 
     // Cargar datos de entrenamiento y se construye diccionario
     void dataTrain(ListaArreglo<D> *Li, ListaArreglo<D> *Stops){
+        int conteo;
         for(Li->moverAInicio();Li->posicionActual() < Li->longitud(); Li->siguiente()){
             this->Licorpus->agregar(Li->getValor());
             stringstream flujo(Li->getValor());
             string linetext;
             while(getline(flujo,linetext,' ')){
-                int count1 =0;
+                conteo = 0;
                 for(Stops->moverAInicio(); Stops->posicionActual()<Stops->longitud(); Stops->siguiente()){
                     if (linetext == Stops->getValor()){
-                        count1 = 1;
+                        conteo++;
                         break;
                     }
                 }
-                // Solo se agrega si no es stopword
-                if (count1 ==0){
+
+                // Solo se agrega si no es stopword y tiene al menos dos silabas
+                if ((conteo == 0) & (linetext.length() > 2)) {
                     this->diccionario->insertarUnic(linetext);
                 }
             }
         }
     }
 
-    //Vectorizacion de Lista
-    void VectorizarInput(D s, ListaArreglo<int> *L){
-        int sum=0;
-        stringstream flujo(s);
-        string linetext;
-        while(getline(flujo,linetext,' ')){
-            for(int x=0;x<this->diccionario->longitud();x++){
-                if (this->diccionario->getKeyEnPosicion(x) == linetext){
-                    sum = sum + pow(2,x);
-                }
-            }
-        }
-        int j=0;
-        while(sum>=1) {
-            L->agregar(sum % 2);
-            sum = sum / 2;
-            j++;
-        }
-    }
-
     //Vectorizacion del Corpus.
     void Vectorizacion(){
+        int conteo;
         int array1[this->diccionario->longitud()];
         for(this->Licorpus->moverAInicio();this->Licorpus->posicionActual() < this->Licorpus->longitud(); this->Licorpus->siguiente()){
-            int sum=0;
+            conteo = 0;
             stringstream flujo(this->Licorpus->getValor());
             string linetext;
 
@@ -922,16 +926,23 @@ public:
                 for(int x=0;x< this->diccionario->longitud();x++){
                     if (this->diccionario->getKeyEnPosicion(x) == linetext){
                         array1[x] = 1;
+                        conteo++;
                     }
                 }
             }
 
-            string vecBin = "";
-            for(int x=0;x< this->diccionario->longitud();x++){
-                vecBin += to_string(array1[x]);
-            }
+            // Solo se inserta si el vector no son todos ceros
+            if (conteo>0){
+                string vecBin = "";
+                for(int x=0;x< this->diccionario->longitud();x++){
+                    vecBin += to_string(array1[x]);
+                }
+                //Diccionario hash para buscar palabras
+                this->CorpusHash->insertarVal(vecBin,this->Licorpus->getValor());
 
-            this->CorpusHash->insertar(this->Licorpus->getValor(),vecBin);
+                // Diccionario simple para recorrer todos los elementos
+                this->FinalWords->insertar(vecBin, this->Licorpus->getValor());
+            }
         }
     }
 
@@ -940,12 +951,10 @@ public:
         // Arreglos para guardar oraciones q se van a comparar
         int array1[this->diccionario->longitud()];
         int array2[this->diccionario->longitud()];
-        int cont1 = 0;    // Contador 1
         DiccionarioArreglo<D, double> *dictResul =  new DiccionarioArreglo<D, double>(this->diccionario->longitud());   // Resultado se guarda en un diccionario
 
         // ---------------------------------------------------- //
         // Palabra nueva se convierte a su valor binario
-        int sumNew=0;
         stringstream flujo(newWord);
         string linetext;
 
@@ -975,12 +984,24 @@ public:
             // Se calcula la distancia
             double temp = 1e-20;
 
+            // Al menos deben tener alguna palabra igual
+            int count1 = 0;
+
             for(int jx=0; jx<this->diccionario->longitud(); jx++){
+                // Al menos deben tener una palabra en comun
+                if (array1[jx] == 1 & array2[jx] == 1){
+                    count1++;
+                }
                 temp += pow(abs(array1[jx] - array2[jx]), pVal);
             }
 
-            if (temp >= 1){
-                temp = pow(temp, (double)1/pVal);
+            // Si no tienen ninguna palabra igual se les coloca una distancia de 1000
+            if (count1==0){
+                temp = 10000;
+            }else{
+                if (temp >= 1 ){
+                    temp = pow(temp, (double)1/pVal);
+                }
             }
 
             // Diccionario con oracion original y su diferencia con la palabra consultada
@@ -991,9 +1012,20 @@ public:
         *dicReturn = dictResul;
     }
 
-    // Extraer el diccionario
-    void getDict(DiccionarioArreglo<D,int> **Dir){
+    // Extraer diccionario de palabras
+    void getDictWords(DiccionarioArreglo<D,int> **Dir){
         *Dir = this->diccionario;
+    }
+
+    // Extraer el diccionario con vector binario y oraciones
+    void getDict(DiccionarioArreglo<D,string> **Dir){
+        //*Dir = this->diccionario;
+        *Dir = this->FinalWords;
+    }
+
+    // Extraer Corpus
+    void getCorpus(DiccionarioHash<D, string> **Dir){
+        *Dir = this->CorpusHash;
     }
 
     // Numero de pabras en el diccionario
@@ -1089,7 +1121,7 @@ public:
 
             if (check1>=1){
                 // Solo se inserta en caso no sea un stopword
-                this->DictHash->insertar(word,valor);
+                this->DictHash->insertar(word,"");
             }
         }
         file.close();
@@ -1104,76 +1136,131 @@ public:
 
 
 int main(){
+    /* --------------------------------------------------------------------------------------- */
     // Se carga informacion
     int sizeBd = 3000;
     importDatos *Datos = new importDatos("..\\Comentarios.csv", "..\\stopwords.csv", sizeBd);
 
-
-
-    // Parte 1
+    /* --------------------------------------------------------------------------------------- */
+    // Parte 3
     // Diccionario para guardar los datos importados
     DiccionarioHash<string,string> *myDict1 = new DiccionarioHash<string,string>(sizeBd);
     ListaArreglo<string> *myStops = new ListaArreglo<string>(sizeBd);
     Datos->importStopWords(&myStops);
     Datos->import(&myDict1);
 
-
-    // Impimir valores
-    //myDict1->imprimirValores();
-
-
-    // ---------------------------------------------------------
-    // Parte 3
-
+    // Se extrea la lista que compone el corpus
     ListaArreglo<string> *Licorpus = new ListaArreglo<string>();
-
     myDict1->expLista(&Licorpus);
 
-
+    // Se carga la lista de palabras de entrenamiento y las StopsWords
     CorpusVectorizado<string> *CorpusVec = new CorpusVectorizado<string>(8000);
-
-
-    // Se cargan los datos de entrenamiento
     CorpusVec->dataTrain(Licorpus, myStops);
 
     // Entrenar modelo
     CorpusVec->Vectorizacion();
 
-    // Diccionario con todas las palabras consideradas
-    DiccionarioArreglo<string, int> *diccionario = new DiccionarioArreglo<string, int>;
-    CorpusVec->getDict(&diccionario);
+    // Se extra el diccionario con clave: vector binario y valor: texto
+    DiccionarioArreglo<string, string> *diccionarioWords = new DiccionarioArreglo<string, string>;
+    CorpusVec->getDict(&diccionarioWords);
 
-    /*
-    // Diccionario con palabras unicas y las veces q se repiten
-    for (int i=0; i< diccionario->longitud(); i++){
-        string keyStr = diccionario->getKeyEnPosicion(i);
-        int valInt = diccionario->getValorEnPosicion(i);
-        cout << keyStr << " // " << valInt << endl;
+    /* --------------------------------------------------------------------------------------- */
+    // Primero se introduce los datos de consulta
+    int introDato=1;
+    string consult;    // Palabra que se va a consultar
+    int radio;          // radio de consulta
+    string keyStr;
+    int conteo;
+
+    // Diccionario con informacion del Corpus previamente entrenado
+    DiccionarioHash<string, string> *diccionario = new DiccionarioHash<string, string>;
+    DiccionarioArreglo<string, double> *dicResult = new DiccionarioArreglo<string, double>(8000);
+    CorpusVec->getCorpus(&diccionario);
+
+    // Diccionario con informacion de palabras consideradas para la construccion vectorial (BAGOFWORDS)
+    DiccionarioArreglo<string, int> *dicWords = new DiccionarioArreglo<string, int>(8000);
+    CorpusVec->getDictWords(&dicWords);
+
+    while (introDato==1){
+        // Se hace la pregunta si quiere ingresar dato 0=No, 1=Si
+        cout << "\n --------------------------------------------- " << endl;
+        cout << "Desea ingresar dato: 0=No, 1=Si: ";
+        cin>>introDato;
+
+        while(!(introDato == 0 | introDato == 1)){
+            // Introducir dato valido
+            cout << "\nIngreso dato no valido: " << endl;
+            cout << "Ingresar dato: 0=No, 1=Si: ";
+            cin>>introDato;
+        }
+
+        if (introDato==1){
+            cout << "\nIntroducir el texto de consulta: ";
+            cin.ignore();
+            getline(cin, consult);
+            cout << "\nIntroducir radio (maxima diferencia) r>0: ";
+            cin>>radio;
+
+            while(radio < 0 ){
+                // Introducir dato valido
+                cout << "\nIntroducir un radio valido (r>0): ";
+                cin>>radio;
+            }
+
+            cin.ignore();
+
+            // La palabra se convierte a minuscula antes de consultar
+            string strLower = "";
+            string temp;
+            setlocale(LC_ALL, "en_US.utf8");
+            for (auto cc: consult){
+                temp = tolower(cc);
+                if ((int)temp[0] == -96){
+                    temp = "a";
+                } else if((int)temp[0] == -95){
+                    temp = "i";
+                } else if((int)temp[0] == -94){
+                    temp = "o";
+                } else if((int)temp[0] == -93){
+                    temp = "u";
+                } else if(((int)temp[0] == -126) | ((int)temp[0] == -112)) {
+                    temp = "e";
+                }
+                strLower += temp;
+            }
+
+            // palabra homogenizada
+            consult = strLower;
+
+            // Antes de buscar, se verifica que alguna palabra exista en el diccionario
+            conteo = 0;
+            string subs;
+            istringstream iss(consult);
+             while(iss) {
+                 iss >> subs;
+                 for (int i = 0; i < dicWords->longitud() & conteo == 0; i++) {
+                     keyStr = dicWords->getKeyEnPosicion(i);
+                     if (keyStr == subs) {
+                         conteo++;
+                     }
+                 }
+             }
+
+            if (conteo > 0){
+                // Se busca la palabra
+                CorpusVec->predict(consult, 1, &dicResult);
+
+                // Se muestra las palabras mas parecidas segun el radio introducido
+                cout << "\n\n" << endl;
+                for  (int i=0; i<dicResult->longitud(); i++){
+                    if (dicResult->getValorEnPosicion(i)<=radio){
+                        cout << dicResult->getKeyEnPosicion(i);
+                        cout << " // "<< dicResult->getValorEnPosicion(i) << endl;
+                    }
+                }
+            }
+        }
     }
-    */
-
-    // Informacion nuevas de oraciones
-    DiccionarioArreglo<string, double> *dicResult = new DiccionarioArreglo<string, double>(8000);  // Diccionario de resultados
-    CorpusVec->predict("viaje oferta semestre", 1, &dicResult);
-
-    // Se imprime las oraciones originales con su respectiva distancia
-    for  (int i=0; i<dicResult->longitud(); i++){
-        string keyStr = dicResult->getKeyEnPosicion(i);
-        double valInt = dicResult->getValorEnPosicion(i);
-        cout << keyStr << " // " << valInt << endl;
-    }
-
-    // En caso solo quisiera imprimir las oraciones mas parecidas (distancia menor o igual a 1)
-    /*
-    cout << "\n\n" << endl;
-    for  (int i=0; i<dicResult->longitud(); i++){
-        //if (dicResult->getValorEnPosicion(i)<=3){
-        cout << dicResult->getKeyEnPosicion(i) << endl;
-        //}
-    }
-    */
 
     return 0;
 }
-
-

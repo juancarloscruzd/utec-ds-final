@@ -1,8 +1,10 @@
 #include <iostream>
-#include <string>
-#include <sstream>
 #include <chrono>
-
+#include <cmath>
+#include <random>
+#include <sstream>
+#include <fstream>
+#include <cstdlib>
 
 using namespace std;
 
@@ -103,10 +105,6 @@ public:
         this->arreglo[this->tamLista++] = *elemento;
     }
 
-    void agregarPoint2(int pos, E *elemento) {
-        this->arreglo[pos] = *elemento;
-    }
-
     //Agregar un elemento a la lista (al final)
     void agregar(E elemento) {
         this->arreglo[this->tamLista++] = elemento;
@@ -172,33 +170,21 @@ public:
     void setValorEnPosicion(int index, E valor) {
         this->arreglo[index] = valor;
     }
-
-    void setValorPoint(int index, E *valor) {
-        //cout << valor->getValor() << endl;
-
-        this->arreglo[index] = *valor;
-    }
-
     E getValorEnPosicion(int index){
         return this->arreglo[index];
     }
-
     // get valor por indice
     void getValIndexpoint(int pos, E** dir){
         //cout << pos;
         //this->arreglo[pos].print();
         //return this->arreglo[pos];
+
         *dir = &this->arreglo[pos];
     }
 
     // get valor por indice
     void getValIndexpoint2(E** dir){
         *dir = &this->arreglo[this->actual];
-    }
-
-    // get valor por indice
-    void getValIndexpoint3(int i, E** dir){
-        *dir = &this->arreglo[i];
     }
 
     // Imprimir vector
@@ -323,13 +309,11 @@ public:
                 temp = pointer->setVal();
             }
         }
-        // En caso no exista se crea un elemeno
+        // En caso no exista se crea un elemento
         if (temp==0){
             this->lista->agregarPoint(new KVPar<Key,int>(k,++temp));
         }
     }
-
-
 
     //Remover y retornar un registro
     //k: la clave del registro que debe ser removido
@@ -538,6 +522,30 @@ public:
         }
     }
 
+    void insertarVal(Key k, E e){
+        // Posicion con valor hash
+        int hashVal = HashObj->valToHash3(e,this->tamLongHash);
+
+        // El insertar se hace en posicion con valor hash
+        ListaArreglo<KVPar<Key, E>> *listTemp;
+        this->arraySeparate->getValIndexpoint(hashVal, &listTemp);
+        int check = listTemp->longitud();
+        if (check == 0){
+            this->numElementos++;  // Elementos del vector grande utilizado
+            KVPar<Key,E> KVTemp(k,e);
+            listTemp->agregar(KVTemp);
+            this->arraySeparate->insertPos(hashVal, listTemp);
+        }else{
+            // Colisiones
+            this->colisiones++;
+            // Se agrega el dato
+            KVPar<Key,E> KVTemp2(k,e);
+            listTemp->agregar(KVTemp2);
+            this->arraySeparate->insertPos(hashVal, listTemp);
+        }
+    }
+
+
     //Remover y retornar un registro
     //k: la clave del registro que debe ser removido
     //Retornar: un registro. Si hay mas de un registro con la misma clave,
@@ -572,7 +580,7 @@ public:
         E temp =NULL;
         ListaArreglo<KVPar<Key,E>> *listBusc;
         for (int i=0; i<this->tamLongHash; i++){
-            this->arraySeparate->getValIndexpoint3(i, &listBusc);
+            this->arraySeparate->getValIndexpoint(i, &listBusc);
             for (listBusc->moverAInicio(); listBusc->posicionActual() < listBusc->longitud(); listBusc->siguiente()){
                 temp = listBusc->getValor().valor();
                 listBusc->eliminar();
@@ -592,10 +600,8 @@ public:
 
         // Posicion con valor hash
         int hashVal = HashObj->valToHash3(k,this->tamLongHash);
-
         ListaArreglo<KVPar<Key, E>> *listTemp;
-        this->arraySeparate->getValIndexpoint3(hashVal, &listTemp);
-
+        this->arraySeparate->getValIndexpoint(hashVal, &listTemp);
         for (listTemp->moverAInicio(); listTemp->posicionActual() < listTemp->longitud(); listTemp->siguiente()){
             if (listTemp->getValor().key()==k){
                 temp = listTemp->getValor().valor();
@@ -604,9 +610,28 @@ public:
             }
         }
 
-        delete[] listTemp;
+        delete listTemp;
         return temp;
     }
+
+    // Encontrar con string
+    E encontrarS(E e){
+        string temp = "";
+
+        // Posicion con valor hash
+        int hashVal = HashObj->valToHash3(e,this->tamLongHash);
+        ListaArreglo<KVPar<Key, E>> *listTemp;
+        this->arraySeparate->getValIndexpoint(hashVal, &listTemp);
+        for (listTemp->moverAInicio(); listTemp->posicionActual() < listTemp->longitud(); listTemp->siguiente()){
+            if (listTemp->getValor().valor()==e){
+                temp = listTemp->getValor().key();
+                return temp;
+                break;
+            }
+        }
+        return temp;
+    }
+
     //Retornar true/false
     bool encontrarbool(Key k){
         // Posicion con valor hash
@@ -635,347 +660,351 @@ public:
     void imprimirValores(){
         ListaArreglo<KVPar<Key,E>> *listBusc;
         for (int i=0; i<this->tamLongHash; i++){
-            this->arraySeparate->getValIndexpoint3(i, &listBusc);
+            this->arraySeparate->getValIndexpoint(i, &listBusc);
             for (listBusc->moverAInicio(); listBusc->posicionActual() < listBusc->longitud(); listBusc->siguiente()){
                 cout << "Key: " << listBusc->getValor().key() << " Valor: " << listBusc->getValor().valor() << endl;
             }
         }
-        delete[] listBusc;
     }
+
+    // Pasar elementos a una lista
+    void expLista(ListaArreglo<string> **Lista){
+
+        ListaArreglo<string> *listaNew = new ListaArreglo<string>(this->numElementos + this->colisiones);
+        ListaArreglo<KVPar<Key,E>> *listExp;
+
+        for (int i=0; i<this->tamLongHash; i++){
+            this->arraySeparate->getValIndexpoint(i, &listExp);
+            for (listExp->moverAInicio(); listExp->posicionActual() < listExp->longitud(); listExp->siguiente()){
+                listaNew->agregar(listExp->getValor().key());
+            }
+        }
+        *Lista = listaNew;
+    }
+
 };
 
-// ------------------------------------------------------- /
-// Diccionario con arboles
-template<typename Key, typename E> class DiccionarioTree : public Diccionario<Key,E>{
+//-------------------------------------------------------------
+// Distancia entre arreglos
+template <typename E>
+double distance(E *array1, E *array2, int p, int size){
+    double temp = 1e-20;
+    for(int i=0; i<size; i++ ){
+        temp += pow(abs(array1[i] - array2[i]), p);
+    };
+    if (temp >= 1){
+        temp = pow(temp, (double)1/p);
+    }
+    return temp;
+};
+
+template<typename D> class CorpusVectorizado{
 private:
-    int tamLongHash;
-    int MaxIndex = 0;
-    int numElementos = 0;
-    int colisiones=0;
+    DiccionarioArreglo<D, int> *diccionario;
+    DiccionarioHash<D, string> *CorpusHash;
+    ListaArreglo<string> *Licorpus;
+    DiccionarioArreglo<D, string> *FinalWords;
     Hashes *HashObj = new Hashes();
-    ListaArreglo<ListaArreglo<KVPar<int, KVPar<Key, E>>>> *arrayDict;
+    int TamanhoHash = 0;
 
 public:
     //Constructor
-    DiccionarioTree(int tamLongHash = 100){
-        this->tamLongHash = tamLongHash;
-        this->arrayDict = new ListaArreglo<ListaArreglo<KVPar<int, KVPar<Key, E>>>>(tamLongHash);
-
-        for (int i = 0; i<this->tamLongHash; i++){
-            KVPar<Key,E> KVTemp1("",-1);
-            KVPar<int, KVPar<Key, E>> KVTemp2(-1, KVTemp1);
-            ListaArreglo<KVPar<int, KVPar<Key, E>>> *result = new ListaArreglo<KVPar<int, KVPar<Key, E>>>;
-            result->agregar(KVTemp2);
-            this->arrayDict->agregarPoint2(i, result);
-        }
+    CorpusVectorizado(int Tam=100){
+        this->CorpusHash = new DiccionarioHash<D, string>(Tam);
+        this->diccionario = new DiccionarioArreglo<D, int>(Tam);
+        this->Licorpus = new ListaArreglo<string>(Tam);
+        this->FinalWords = new DiccionarioArreglo<D, string>(Tam);
+        this->TamanhoHash = Tam;
     }
 
     //Destructor
-    ~DiccionarioTree(){
-        delete arrayDict;
+    ~CorpusVectorizado(){
+        delete CorpusHash;
     }
 
-    //Reinicializacion de un diccionario
-    void limpiar(){
-        this->arrayDict->limpiar();
-    }
+    // Cargar datos de entrenamiento y se construye diccionario
+    void dataTrain(ListaArreglo<D> *Li, ListaArreglo<D> *Stops){
+        int conteo;
+        for(Li->moverAInicio();Li->posicionActual() < Li->longitud(); Li->siguiente()){
+            this->Licorpus->agregar(Li->getValor());
+            stringstream flujo(Li->getValor());
+            string linetext;
+            while(getline(flujo,linetext,' ')){
+                conteo = 0;
+                for(Stops->moverAInicio(); Stops->posicionActual()<Stops->longitud(); Stops->siguiente()){
+                    if (linetext == Stops->getValor()){
+                        conteo++;
+                        break;
+                    }
+                }
 
-    //Insertar un registro
-    //k: la clave para el registro
-    //e: el registro
-    void insertar(Key k, E e) {
-        // Elemento adicional
-        this->numElementos = this->numElementos + 1;
-
-        int hashVal = HashObj->valToHash3(k,this->tamLongHash);
-        int index = 0;
-        ListaArreglo<KVPar<int, KVPar<Key, E>>> *actual;
-        this->arrayDict->getValIndexpoint(index, &actual);
-
-        while (actual->getValor().key() > 0) {
-            if (actual->getValor().key() == hashVal){
-                // Si el key es el mismo valor hash se sale del loop
-                this->colisiones++;
-                break;
-            }
-            if (actual->getValor().key() > hashVal) {
-                index = 2 * index + 1;
-                this->arrayDict->getValIndexpoint(index, &actual);
-            } else {
-                index = 2 * (index + 1);
-                this->arrayDict->getValIndexpoint(index, &actual);
+                // Solo se agrega si no es stopword y tiene al menos dos silabas
+                if ((conteo == 0) & (linetext.length() > 2)) {
+                    this->diccionario->insertarUnic(linetext);
+                }
             }
         }
-
-        // Se hace el insert
-        KVPar<Key,E> KVTemp1(k,e);
-        KVPar<int, KVPar<Key, E>> KVTemp2(hashVal, KVTemp1);
-
-        if (actual->getValor().key() == -1){
-            // Se reemplaza en el mismo valor
-            ListaArreglo<KVPar<int, KVPar<Key, E>>> *newVar = new ListaArreglo<KVPar<int, KVPar<Key, E>>>;
-            newVar->agregar(KVTemp2);
-            this->arrayDict->agregarPoint2(index, newVar);
-        }
-        else{
-            actual->agregar(KVTemp2);
-            this->arrayDict->agregarPoint2(index, actual);
-        }
-
-        if(this->MaxIndex < index){
-            this->MaxIndex = index;
-        }
-
     }
 
+    //Vectorizacion del Corpus.
+    void Vectorizacion(){
+        int conteo;
+        int array1[this->diccionario->longitud()];
+        for(this->Licorpus->moverAInicio();this->Licorpus->posicionActual() < this->Licorpus->longitud(); this->Licorpus->siguiente()){
+            conteo = 0;
+            stringstream flujo(this->Licorpus->getValor());
+            string linetext;
 
-    //Remover y retornar un registro
-    //k: la clave del registro que debe ser removido
-    //Retornar: un registro. Si hay mas de un registro con la misma clave,
-    //  se debe remover uno de manera arbitraria
-    //Retornar NULL si la clave "K" no se encuentra en el diccionario
-    //E remover(Key k){
-    E remover(Key k){
-        // Posicion con valor hash
-        int hashVal = HashObj->valToHash3(k,this->tamLongHash);
-        E temp = NULL;
+            for(int x=0;x< this->diccionario->longitud();x++){
+                array1[x] = 0;
+            }
 
-        ListaArreglo<KVPar<int, KVPar<Key, E>>> *actual;
-        int centinela = 0;
-        for(int i = 0; i<this->tamLongHash && centinela == 0; i++){
-            this->arrayDict->getValIndexpoint(i, &actual);
+            while(getline(flujo,linetext,' ')){
+                for(int x=0;x< this->diccionario->longitud();x++){
+                    if (this->diccionario->getKeyEnPosicion(x) == linetext){
+                        array1[x] = 1;
+                        conteo++;
+                    }
+                }
+            }
 
-            for (actual->moverAInicio(); actual->posicionActual()<actual->longitud(); actual->siguiente()){
-                if (actual->getValor().key()  == hashVal){
-                    temp = actual->getValor().key();
-                    actual->eliminar();
-                    centinela = 1;
+            // Solo se inserta si el vector no son todos ceros
+            if (conteo>0){
+                string vecBin = "";
+                for(int x=0;x< this->diccionario->longitud();x++){
+                    vecBin += to_string(array1[x]);
+                }
+                //cout << vecBin << endl;
+                this->CorpusHash->insertarVal(vecBin,this->Licorpus->getValor());
+                this->FinalWords->insertar(vecBin, this->Licorpus->getValor());
+            }
+        }
+    }
+
+    // Devolver oraciones de entrenamiento con su distancia
+    void predict(string newWord, int pVal, DiccionarioArreglo<D,double> **dicReturn){
+        // Arreglos para guardar oraciones q se van a comparar
+        int array1[this->diccionario->longitud()];
+        int array2[this->diccionario->longitud()];
+        DiccionarioArreglo<D, double> *dictResul =  new DiccionarioArreglo<D, double>(this->diccionario->longitud());   // Resultado se guarda en un diccionario
+
+        // ---------------------------------------------------- //
+        // Palabra nueva se convierte a su valor binario
+        stringstream flujo(newWord);
+        string linetext;
+
+        for(int ix=0; ix<this->diccionario->longitud(); ix++){
+            array1[ix]=0;
+        }
+
+        while(getline(flujo,linetext,' ')){
+            for(int x=0;x< this->diccionario->longitud();x++){
+                if (this->diccionario->getKeyEnPosicion(x) == linetext){
+                    array1[x] = 1;
+                }
+            }
+        }
+
+        // ---------------------------------------------------- //
+        // Se compara este array con cada una de las oraciones iniciales
+        for(this->Licorpus->moverAInicio();this->Licorpus->posicionActual() < this->Licorpus->longitud(); this->Licorpus->siguiente()){
+            // Conversion a su valor binario
+            string x = this->CorpusHash->encontrarS(this->Licorpus->getValor());
+
+            int centi1 = 0;
+            for (auto xx : x){
+                array2[centi1++] = (int)xx-48;
+            }
+
+            // Se calcula la distancia
+            double temp = 1e-20;
+
+            // Al menos deben tener alguna palabra igual
+            int count1 = 0;
+
+            for(int jx=0; jx<this->diccionario->longitud(); jx++){
+                if (array1[jx] == 1 & array2[jx] == 1){
+                    count1++;
+                }
+                temp += pow(abs(array1[jx] - array2[jx]), pVal);
+            }
+
+            // Si no tienen ninguna palabra igual se les coloca una distancia de 1000
+            if (count1==0){
+                temp = 10000;
+            }else{
+                if (temp >= 1 ){
+                    temp = pow(temp, (double)1/pVal);
+                }
+            }
+
+            // Diccionario con oracion original y su diferencia con la palabra consultada
+            dictResul->insertar(this->Licorpus->getValor(), temp);
+        }
+
+        // Se retorna el diccionario
+        *dicReturn = dictResul;
+    }
+
+    // Extraer diccionario de palabras
+    void getDictWords(DiccionarioArreglo<D,int> **Dir){
+        *Dir = this->diccionario;
+    }
+
+    // Extraer el diccionario con vector binario y oraciones
+    void getDict(DiccionarioArreglo<D,string> **Dir){
+        //*Dir = this->diccionario;
+        *Dir = this->FinalWords;
+    }
+
+    // Extraer Corpus
+    void getCorpus(DiccionarioHash<D, string> **Dir){
+        *Dir = this->CorpusHash;
+    }
+
+    // Numero de pabras en el diccionario
+    int numWords(){
+        return this->diccionario->longitud();
+    }
+
+};
+
+//-------------------------------------------------------------
+class importDatos {
+private:
+    int numUnic;
+    string dirFile;
+    string dirStops;
+    DiccionarioHash<string,string> *DictHash;
+    ListaArreglo<string> *StopList;
+
+public:
+    importDatos(string dirFile, string dirStops, int tam, int tamStop = 1000){
+        this->dirFile = dirFile;
+        this->dirStops = dirStops;
+        this->DictHash = new DiccionarioHash<string,string>(tam);
+        this->StopList = new ListaArreglo<string>(tamStop);
+        this->numUnic=0;
+    };
+    ~importDatos(){};
+
+    // **************************************************** //
+    // Se importa las stopwords
+    void importStopWords(ListaArreglo<string> **Lista) {
+        ifstream file(this->dirStops);
+        string linea;
+        getline(file, linea);
+        while (getline(file, linea)) {
+            stringstream flujo(linea); //Convertimos la cadena a un stream.
+            string ID, valor;
+            getline(flujo, ID, ';');
+            getline(flujo, valor);
+            this->StopList->agregar(ID);
+        }
+
+        *Lista = this->StopList;
+    }
+
+    // Se carga informacion
+    void import(DiccionarioHash<string,string> **Dict){
+        //Extraer datos del dataset.
+
+        ifstream file(this->dirFile);
+        string linea;
+        char delimiter = ';';
+        getline(file,linea);
+        int conteo;
+        while(getline(file,linea)){
+            stringstream flujo(linea); //Convertimos la cadena a un stream.
+            string ID, valor;
+            getline(flujo,ID,';');
+            getline(flujo,valor);
+
+            // Se estandariza la palabra
+            string word = "";
+            conteo = 0;
+            for (auto cx: ID){
+
+                // No se guardan nombres que comienzan con @
+                if (cx == '@'){
+                    conteo = 1;
+                }
+                else if ((cx == ' ') && (conteo == 1)){
+                    conteo = 0;
+                }
+                else if (conteo==0){
+                    if (cx == ' '){
+                        cx = tolower(cx);
+                        word += cx;
+                    }
+                    else if (isalpha(cx)){
+                        cx = tolower(cx);
+                        word += cx;
+                    }
+                }
+            }
+
+            // Solo se guarda si hay informacion
+            int check1 = 0;
+            for (auto str : word){
+                if (str != ' '){
+                    check1++;
                     break;
                 }
             }
-        }
-        return temp;
-    }
 
-
-    //Remover y retornar un registro arbitrario del diccionario
-    //Retornar: el registro que ha sido removido o NULL si no existe
-    E removerCualquiera(){
-        E temp =NULL;
-
-        ListaArreglo<KVPar<int, KVPar<Key, E>>> *actual;
-        int centinela = 0;
-        for(int i = 0; i<this->tamLongHash && centinela == 0; i++){
-            this->arrayDict->getValIndexpoint(i, &actual);
-
-            for (actual->moverAInicio(); actual->posicionActual()<actual->longitud(); actual->siguiente()){
-                if (actual->getValor().key()  > 0 ){
-                    temp = actual->getValor().key();
-                    actual->eliminar();
-                    centinela = 1;
-                    break;
-                }
+            if (check1>=1){
+                // Solo se inserta en caso no sea un stopword
+                this->DictHash->insertar(word,"");
             }
         }
-
-        delete[] actual;
-        return temp;
+        file.close();
+        *Dict = this->DictHash;
     }
 
-
-    //Return: un registro o NULL si no existe
-    //Si hay multiples registros, se debe retornar uno de manera aleatoria
-    //K: la clave del registro a encontrar
-    E encontrar(Key k){
-        int hashVal = HashObj->valToHash3(k,this->tamLongHash);
-        int index = 0;
-
-        ListaArreglo<KVPar<int, KVPar<Key, E>>> *actual;
-        this->arrayDict->getValIndexpoint(index, &actual);
-
-        while (actual->getValor().key() != hashVal && index <= this->tamLongHash) {
-            if (actual->getValor().key() > hashVal) {
-                index = 2 * index + 1;
-                this->arrayDict->getValIndexpoint(index, &actual);
-            } else {
-                index = 2 * (index + 1);
-                this->arrayDict->getValIndexpoint(index, &actual);
-            }
-        }
-
-        if (index > this->tamLongHash) {
-            return -1;
-        }else{
-            // Se busca dentro de nodo
-            for (actual->moverAInicio(); actual->posicionActual() < actual->longitud(); actual->siguiente()){
-                //cout << actual->getValor() << endl;
-                if (actual->getValor().valor().key() == k){
-                    return actual->getValor().valor().valor();
-                    break;
-                }
-            }
-        }
-        delete[] actual;
+    int numWords(){
+        return this->numUnic;
     }
 
-
-    //Retornar true/false
-    bool encontrarbool(Key k){
-        // Posicion con valor hash
-        int hashVal = HashObj->valToHash3(k,this->tamLongHash);
-        int index = 0;
-
-        ListaArreglo<KVPar<int, KVPar<Key, E>>> *actual;
-        this->arrayDict->getValIndexpoint(index, &actual);
-
-        while (actual->getValor().key() != hashVal && index <= this->tamLongHash) {
-            if (actual->getValor().key() > hashVal) {
-                index = 2 * index + 1;
-                this->arrayDict->getValIndexpoint(index, &actual);
-            } else {
-                index = 2 * (index + 1);
-                this->arrayDict->getValIndexpoint(index, &actual);
-            }
-        }
-
-        if (index > this->tamLongHash) {
-            return false;
-        }else{
-            // Se busca dentro de cada nodo
-            return true;
-        }
-        delete[] actual;
-    }
-
-    //Devolver la cantidad de elementos del Dictionario.
-    int longitud(){
-        return this->numElementos;
-    }
-
-    //Imprimir todos los valores del diccionario.
-    void imprimirValores(){
-
-        ListaArreglo<KVPar<int, KVPar<Key, E>>> *actual;
-        int centinela = 0;
-        int centi1;
-        for(int i = 0; i<this->tamLongHash && centinela == 0; i++){
-            this->arrayDict->getValIndexpoint(i, &actual);
-            centi1 = 0;
-            for (actual->moverAInicio(); actual->posicionActual()<actual->longitud(); actual->siguiente()){
-                if (actual->getValor().key() != -1){
-                    cout << actual->getValor() << " ";
-                    centi1++;
-                }
-            }
-            if (centi1>0){
-                cout << " " << endl;
-            }
-        }
-        delete[] actual;
-    }
 };
 
 
-
-
 int main(){
-    // Palabras para simulacion
-    int numWords = 500;
-    int sizeWords = 5;
-    string letras[] = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"};
-    string words[numWords];  // Vector de palabras creadas
-    int randGen[numWords];   // Vector de valores creados
-    int paso = 5;
-    std::chrono::duration<double, std::milli> exper1[numWords/paso]; // Vector para guardar resultados de experimento Hash
-    std::chrono::duration<double, std::milli> exper2[numWords/paso]; // Vector para guardar resultados de experimento Hash
-    std::chrono::duration<double, std::milli> exper3[numWords/paso]; // Vector para guardar resultados de experimento Hash
-    int randNum;
-    int contador=0;
-    string genWord;
+    /* --------------------------------------------------------------------------------------- */
+    // Se carga informacion
+    int sizeBd = 3000;
+    importDatos *Datos = new importDatos("..\\Comentarios.csv", "..\\stopwords.csv", sizeBd);
 
-    // Se ingresan las 500 palabras en cada diccionario
-    DiccionarioHash<string, int> *dictHash = new DiccionarioHash<string, int>(500);
-    DiccionarioTree<string, int> *dictTree = new DiccionarioTree<string, int>(5000);
-    DiccionarioArreglo<string, int> *dictLista = new DiccionarioArreglo<string, int>(500);
+    /* --------------------------------------------------------------------------------------- */
 
-    for(int i=0;i<numWords;i++){
-        genWord="";
-        for (int j=0; j<sizeWords; j++){
-            // Se generan 5 numero aleatorios
-            randNum = rand()%(25) + 1;
-            genWord += letras[randNum];
-        }
-        words[i] = genWord;
-        randGen[i] = randNum;
-        dictHash->insertar(genWord,randNum); // Se guarda el ultimo numero aleatorio generado
-        dictTree->insertar(genWord,randNum);
-        dictLista->insertar(genWord,randNum);
-    }
+    // Parte 1
+    // Diccionario para guardar los datos importados
+    DiccionarioHash<string,string> *myDict1 = new DiccionarioHash<string,string>(sizeBd);
+    ListaArreglo<string> *myStops = new ListaArreglo<string>(sizeBd);
+    Datos->importStopWords(&myStops);
+    Datos->import(&myDict1);
 
-    //dictTree->imprimirValores();
+    // Se extrea la lista que compone el corpus
+    ListaArreglo<string> *Licorpus = new ListaArreglo<string>();
+    myDict1->expLista(&Licorpus);
 
+    // Se carga la lista de palabras de entrenamiento y las StopsWords
+    CorpusVectorizado<string> *CorpusVec = new CorpusVectorizado<string>(8000);
+    CorpusVec->dataTrain(Licorpus, myStops);
 
-    // -------------------------------------------------------------------- //
-    // Se hace consultas de 5 a 500
-    for(int i=4; i<numWords; i+=paso) {
-        // Tiempo del diccionario hash
-        auto t_start1 = std::chrono::steady_clock::now();
-        for (int j = 0; j <= i; j++) {
-            // Buscar de diccionario hash y revisar correctitud con el valor guardado
-            if (dictHash->encontrar(words[j]) != randGen[j]) {
-                cout << "Valor incorrecto" << endl;
-            }
-        }
-        auto t_end1 = std::chrono::steady_clock::now();
-        exper1[contador] = std::chrono::duration_cast<std::chrono::microseconds>(t_end1 - t_start1);
-        contador++;
-    }
+    // Entrenar modelo
+    CorpusVec->Vectorizacion();
 
-    // ---------------------------------------------------------------- //
-    contador = 0;
-    for(int i=4; i<numWords; i+=paso) {
-        // Tiempo del diccionario arbol
-        auto t_start2 = std::chrono::steady_clock::now();
-        for (int j = 0; j <= i; j++) {
-            // Buscar de diccionario hash y revisar correctitud con el valor guardado
-            if (dictTree->encontrar(words[j]) != randGen[j]) {
-                cout << "Valor incorrecto" << endl;
-            }
-        }
-        auto t_end2 = std::chrono::steady_clock::now();
-        exper2[contador] = std::chrono::duration_cast<std::chrono::microseconds>(t_end2 - t_start2);
-        contador++;
-    }
+    // Se extra el diccionario con clave: vector binario y valor: texto
+    DiccionarioArreglo<string, string> *diccionarioWords = new DiccionarioArreglo<string, string>;
+    CorpusVec->getDict(&diccionarioWords);
 
-    // ---------------------------------------------------------------- //
-    contador = 0;
-    for(int i=4; i<numWords; i+=paso) {
-        // Tiempo del diccionario lista
-        auto t_start3 = std::chrono::steady_clock::now();
-        for(int j=0; j<=i; j++){
-            // Buscar de diccionario lista y revisar correctitud con el valor guardado
-            if (dictLista->encontrar(words[j]) != randGen[j]){
-                cout << "Valor incorrecto" << endl;
-            }
-        }
-        // Se guarda el tiempo
-        auto t_end3 = std::chrono::steady_clock::now();
-        exper3[contador] = std::chrono::duration_cast<std::chrono::microseconds>(t_end3 - t_start3);
-        contador++;
-    }
-
-    // Se muestra los resultados del experimento
-
-    int count1 = 0;
-    for(int i=4; i<numWords; i+=paso){
-        cout << "\nExperimento con (n=" << i+1 << ")" << endl;
-        cout << "Tiempo con diccionario Hash:; " << exper1[count1].count();
-        cout << " // Tiempo con diccionario Arbol:; " << exper2[count1].count();
-        cout << " // Tiempo con diccionario Lista:; " << exper3[count1].count() <<  endl;
-        count1++;
+    // Diccionario con palabras unicas y las veces q se repiten (se muestran los primero 5
+    for (int i=0; i< 5; i++){
+        string keyStr = diccionarioWords->getKeyEnPosicion(i);
+        string valInt = diccionarioWords->getValorEnPosicion(i);
+        cout << keyStr << " // " << valInt << endl;
     }
 
     return 0;
 }
-
-
